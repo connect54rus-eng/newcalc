@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>VR — Калькулятор ресурсов</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Стили для калькулятора ресурсов -->
+    <style id="resources-styles">
+        body {
+            background: #0f172a;
+            color: #e5e7eb;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 22px;
+            margin: 0 0 8px 0;
+        }
+        .calc {
+            max-width: 420px;
+            margin: auto;
+            background: #020617;
+            padding: 10px 20px 20px 20px;
+            border-radius: 12px;
+        }
+        label {
+            display: block;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+        .input-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .input-row input {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            background: #1e293b;
+            color: #fff;
+        }
+        .billion-box {
+            width: 30%;
+            background: #020617;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #94a3b8;
+            user-select: none;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+        .total {
+            margin-top: 2px;
+            font-weight: bold;
+        }
+        #secretBox {
+            display: none;
+            max-width: 420px;
+            margin: 5px auto 10px;
+        }
+        #secretInput {
+            width: 80%;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 10px 12px;
+            font-size: 15px;
+            border-radius: 10px;
+            border: 1px solid #64748b;
+            background: #111827;
+            color: #f1f5f9;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.5), 0 -2px 8px rgba(255,255,255,0.04);
+            transition: all 0.18s ease;
+            box-sizing: border-box;
+            display: block;
+        }
+    </style>
+
+    <!-- Стили для калькулятора налога -->
+    <style id="nalog-styles">
+        #nalog-calc {
+            display: none;
+            width: 100%;
+            max-width: 420px;
+            margin: auto;
+        }
+        #nalog-calc .container {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 20px 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            border: 1px solid #2a2a4a;
+            overflow: hidden;
+        }
+        #nalog-calc h1 {
+            font-size: 1.55rem;
+            color: #a0a0ff;
+            margin: 0 0 20px;
+            text-align: center;
+        }
+        #nalog-calc .level-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #nalog-calc .level-block {
+            flex: 1;
+            text-align: center;
+        }
+        #nalog-calc .level-block label {
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            color: #b0b0ff;
+        }
+        #nalog-calc select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+            background: #22223a;
+            color: white;
+            font-size: 1.15rem;
+        }
+        #nalog-calc .info {
+            font-size: 1.05rem;
+            color: #80ff80;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        #nalog-calc .field {
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        #nalog-calc label {
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            color: #b0b0ff;
+            display: block;
+        }
+        #nalog-calc input {
+            width: 100%;
+            max-width: 220px;           /* ← здесь уменьшили ширину примерно на 60% */
+            padding: 12px 14px;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+            background: #22223a;
+            color: white;
+            font-size: 1.25rem;
+            box-sizing: border-box;
+        }
+        #nalog-calc .field.desired-field {
+            text-align: left;           /* ← прижимаем к левой стороне */
+        }
+        #nalog-calc .readonly-field {
+            width: 100%;
+            padding: 12px 14px;
+            background: #1e1e38;
+            border: 1px solid #3a3a5a;
+            border-radius: 10px;
+            font-size: 1.25rem;
+            color: #80ff80;
+            text-align: center;
+            font-weight: bold;
+            box-sizing: border-box;
+            white-space: pre;
+        }
+        #nalog-calc #result {
+            margin-top: 4px;
+            padding: 10px 16px 8px;
+            background: #1e1e38;
+            border-radius: 12px;
+            border: 1px solid #3a3a5a;
+        }
+        #nalog-calc .result-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 1.05rem;
+            width: 100%;
+        }
+        #nalog-calc .result-line:first-child {
+            margin-top: 2px;
+        }
+        #nalog-calc .result-line:last-child {
+            margin-bottom: 2px;
+        }
+        #nalog-calc .result-line span:first-child {
+            text-align: left;
+            flex: 1;
+        }
+        #nalog-calc .result-line span:last-child,
+        #nalog-calc .result-line strong {
+            text-align: right;
+            font-weight: bold;
+            min-width: 140px;
+        }
+        #nalog-calc .tax {
+            color: #ff8080;
+        }
+        #nalog-calc .total-sum {
+            color: #ffd700;
+        }
+        #nalog-calc .total-sum strong {
+            color: #ffd700;
+        }
+        #resources-header {
+            font-size: 0.95rem;
+            color: #b0b0ff;
+            margin: 8px 0 4px 0;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+
+<h1 onclick="titleClick()">VR Калькулятор ресурсов</h1>
+
+<div id="secretBox">
+    <input id="secretInput" type="text" placeholder="???" oninput="checkSecret()">
+</div>
+
+<div class="calc">
+    <label>Еда (млн)</label>
+    <div class="input-row">
+        <input id="food" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Минимум 50" oninput="filterOnlyDigits(this); update()">
+        <div id="foodB" class="billion-box">0,000 млрд</div>
+    </div>
+
+    <label>Дерево (млн)</label>
+    <div class="input-row">
+        <input id="wood" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Минимум 50" oninput="filterOnlyDigits(this); update()">
+        <div id="woodB" class="billion-box">0,000 млрд</div>
+    </div>
+
+    <label>Камень (млн)</label>
+    <div class="input-row">
+        <input id="stone" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Минимум 50" oninput="filterOnlyDigits(this); update()">
+        <div id="stoneB" class="billion-box">0,000 млрд</div>
+    </div>
+
+    <label>Золото (млн)</label>
+    <div class="input-row">
+        <input id="gold" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Минимум 50" oninput="filterOnlyDigits(this); update()">
+        <div id="goldB" class="billion-box">0,000 млрд</div>
+    </div>
+
+    <div class="row"><span>Еда</span><span id="foodPrice">0 ₽</span></div>
+    <div class="row"><span>Дерево</span><span id="woodPrice">0 ₽</span></div>
+    <div class="row"><span>Камень</span><span id="stonePrice">0 ₽</span></div>
+    <div class="row"><span>Золото</span><span id="goldPrice">0 ₽</span></div>
+
+    <hr style="border:0; border-top:1px solid #334155; margin:16px 0 12px 0;">
+
+    <div class="row total">
+        <span>Итого</span>
+        <span id="totalPrice">0 ₽</span>
+    </div>
+</div>
+
+<div style="max-width:460px; margin:4px auto 0; padding:0 20px 2px 20px; border-radius:12px;">
+    <input id="nickname" type="text" placeholder="Введите ник для доставки ресурсов"
+           style="width:100%; padding:10px; font-size:16px; border-radius:8px; border:none; background:#1e293b; color:#fff; box-sizing:border-box;">
+</div>
+
+<div style="text-align:center; margin-top:4px; font-size:14px; color:#aaa;">
+📸 Для отправки заказа сделайте скриншот и отправьте
+<a href="https://t.me/kkk38382?v=80" style="color:#f1c232; font-weight:bold; text-decoration:underline;">менеджеру</a> 📸
+</div>
+
+<div style="text-align:center; margin-top:20px; font-size:10px; color:#aaa;">
+Создатель калькулятора @ivanka54
+</div>
+
+<!-- Калькулятор налога (VR) -->
+<div id="nalog-calc">
+  <div class="container">
+    <h1>Калькулятор налога (VR)</h1>
+
+    <div class="level-section">
+      <div class="level-block">
+        <label>Ур. Зала</label>
+        <select id="hall-level">
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
+          <option value="24" selected>24</option>
+          <option value="25">25</option>
+        </select>
+      </div>
+
+      <div class="level-block">
+        <label>Налог %</label>
+        <div class="info" id="tax-rate">11%</div>
+      </div>
+
+      <div class="level-block">
+        <label>Вместимость припасов</label>
+        <div class="info" id="capacity">6.500.000</div>
+      </div>
+    </div>
+
+    <div class="field desired-field">  <!-- ← добавили класс для выравнивания -->
+      <label>Запрос ресурсов:</label>
+      <input type="text" id="desired" inputmode="numeric" pattern="[0-9]*" maxlength="15" placeholder="0" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label>Кол-во отправки + млн:</label>
+      <div class="readonly-field" id="trips">0</div>
+    </div>
+
+    <div id="resources-header">Отправлено Ресурсов + Налог (млн):</div>
+
+    <div id="result">
+     <div class="result-line">
+        <span>Отправлено:</span>
+        <span id="sent">0</span>
+      </div>
+      <div class="result-line tax">
+        <span>Налог:</span>
+        <span id="tax-amount">0 (11%)</span>
+      </div> 
+      <div class="result-line total-sum">
+        <span>Итого:</span>
+        <strong id="total-sum">0</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Логика калькулятора ресурсов
+let pricesNormal = { food:300, wood:300, stone:300, gold:500 };
+let pricesKing   = { food:200, wood:200, stone:200, gold:400 };
+let prices = pricesNormal;
+
+function formatPrice(num) {
+    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+function toBillion(v) {
+    let billions = v / 1000;
+    let formatted = billions.toFixed(3).replace('.', ',');
+    return formatted + " млрд";
+}
+
+function calc(v, p) {
+    return v >= 50 ? (v / 100) * p : 0;
+}
+
+function filterOnlyDigits(input) {
+    let val = input.value.replace(/[^0-9]/g, '');
+    if (val.length > 0 && val[0] === '0') {
+        val = val.substring(1);
+        if (val.length === 0) val = '';
+    }
+    input.value = val;
+    if (input.value.length > 6) {
+        input.value = input.value.slice(0, 6);
+    }
+}
+
+function update() {
+    let fv = +document.getElementById("food").value  || 0;
+    let wv = +document.getElementById("wood").value  || 0;
+    let sv = +document.getElementById("stone").value || 0;
+    let gv = +document.getElementById("gold").value  || 0;
+
+    document.getElementById("foodB").innerText  = toBillion(fv);
+    document.getElementById("woodB").innerText  = toBillion(wv);
+    document.getElementById("stoneB").innerText = toBillion(sv);
+    document.getElementById("goldB").innerText  = toBillion(gv);
+
+    let f = calc(fv, prices.food);
+    let w = calc(wv, prices.wood);
+    let s = calc(sv, prices.stone);
+    let g = calc(gv, prices.gold);
+
+    document.getElementById("foodPrice").innerText  = formatPrice(f) + " ₽";
+    document.getElementById("woodPrice").innerText  = formatPrice(w) + " ₽";
+    document.getElementById("stonePrice").innerText = formatPrice(s) + " ₽";
+    document.getElementById("goldPrice").innerText  = formatPrice(g) + " ₽";
+    document.getElementById("totalPrice").innerText = formatPrice(f + w + s + g) + " ₽";
+}
+
+// Секретное табло
+let clicks = 0;
+function titleClick() {
+    clicks++;
+    if (clicks === 5) {
+        document.getElementById("secretBox").style.display = "block";
+    }
+}
+
+function checkSecret() {
+    let code = document.getElementById("secretInput").value.trim().toLowerCase();
+    if (code === "na1og") {
+        document.querySelector(".calc").style.display = "none";
+        document.querySelector("h1").style.display = "none";
+        document.getElementById("secretBox").style.display = "none";
+        document.querySelector("div[style*='max-width:460px']").style.display = "none";
+        document.querySelector("div[style*='text-align:center; margin-top:4px']").style.display = "none";
+        document.querySelector("div[style*='margin-top:20px; font-size:10px']").style.display = "none";
+
+        document.getElementById("nalog-calc").style.display = "block";
+    } else if (code === "od1n") {
+        prices = pricesKing;
+        document.getElementById("secretBox").style.display = "none";
+        document.getElementById("secretInput").value = "";
+        update();
+    }
+}
+
+// Логика калькулятора налога
+const hallSelect = document.getElementById('hall-level');
+const taxRateEl = document.getElementById('tax-rate');
+const capacityEl = document.getElementById('capacity');
+const desiredInput = document.getElementById('desired');
+const tripsEl = document.getElementById('trips');
+const sentEl = document.getElementById('sent');
+const taxEl = document.getElementById('tax-amount');
+const totalSumEl = document.getElementById('total-sum');
+
+const levelsData = {
+  20: { tax: 22, cap: 4500000 },
+  21: { tax: 18, cap: 5000000 },
+  22: { tax: 15, cap: 5500000 },
+  23: { tax: 13, cap: 6000000 },
+  24: { tax: 11, cap: 6500000 },
+  25: { tax: 10, cap: 8000000 }
+};
+
+function updateLevelInfo() {
+  const lvl = hallSelect.value;
+  const data = levelsData[lvl];
+  taxRateEl.textContent = data.tax + '%';
+  capacityEl.textContent = formatNumber(data.cap);
+  calculate();
+}
+
+function formatNumber(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function parseFormatted(str) {
+  return parseInt(str.replace(/\./g, '')) || 0;
+}
+
+function formatMillion(num) {
+  if (num === 0) return "0";
+  return (num / 1000000).toFixed(3).replace('.', ',');
+}
+
+desiredInput.addEventListener('input', e => {
+  let val = e.target.value.replace(/\D/g, '');
+  if (val.startsWith('0') && val.length > 1) {
+    val = val.replace(/^0+/, '');
+  }
+  if (val === '') val = '0';
+  e.target.value = formatNumber(val);
+  calculate();
+});
+
+hallSelect.addEventListener('change', updateLevelInfo);
+
+function calculate() {
+  const lvl = hallSelect.value;
+  const data = levelsData[lvl];
+  const taxPct = data.tax / 100;
+  const cap = data.cap;
+  const desired = parseFormatted(desiredInput.value);
+
+  if (desired <= 0 || cap <= 0) {
+    tripsEl.textContent = "0";
+    sentEl.textContent = "0";
+    taxEl.textContent = "0 (" + data.tax + "%)";
+    totalSumEl.textContent = "0";
+    return;
+  }
+
+  const fullTrips = Math.floor(desired / cap);
+  const sentBase = fullTrips * cap;
+  const remainder = desired - sentBase;
+
+  let tripsText = fullTrips.toString();
+  if (remainder > 0) {
+    tripsText += " + " + formatMillion(remainder);
+  }
+  tripsEl.textContent = tripsText;
+
+  const sent = sentBase;
+  const tax = Math.round(sent * taxPct);
+  const total = sent + tax;
+
+  sentEl.textContent     = formatNumber(sent);
+  taxEl.textContent      = formatNumber(tax) + " (" + data.tax + "%)";
+  totalSumEl.textContent = formatNumber(total);
+}
+
+updateLevelInfo();
+
+// Telegram WebApp
+if (window.Telegram && Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+}
+</script>
+
+</body>
+</html>
